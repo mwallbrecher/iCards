@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import type { Rank } from "@/lib/core/card";
-import type { GoFishState, PlayerId } from "@/lib/games/gofish";
+import type { GameEvent, GoFishState, PlayerId } from "@/lib/games/gofish";
+import { AnimationOverlay, type AnimPayload } from "@/components/AnimationOverlay";
 import { Books } from "@/components/Books";
 import { EventLog } from "@/components/EventLog";
 import { GameOverBanner } from "@/components/GameOverBanner";
@@ -43,6 +45,53 @@ export function GameView({
   const canAsk =
     isViewerTurn && selectedRank !== null && state.phase !== "gameOver";
 
+  const historyRef = useRef(state.history);
+  historyRef.current = state.history;
+  const prevLenRef = useRef(state.history.length);
+  const [anim, setAnim] = useState<AnimPayload | null>(null);
+
+  useEffect(() => {
+    const history = historyRef.current;
+    const currentLen = history.length;
+    const prevLen = prevLenRef.current;
+    prevLenRef.current = currentLen;
+
+    if (currentLen <= prevLen) return;
+
+    const newEvents = history.slice(prevLen);
+    const askEvent = newEvents.find(
+      (e): e is Extract<GameEvent, { type: "ask" }> => e.type === "ask",
+    );
+    if (!askEvent) return;
+
+    let payload: AnimPayload;
+
+    if (askEvent.from === viewerPlayer) {
+      if (askEvent.success) {
+        payload = { type: "you-got-cards", rank: askEvent.rank, count: askEvent.cardsGiven };
+      } else {
+        const fishEvent = newEvents.find(
+          (e): e is Extract<GameEvent, { type: "goFish" }> =>
+            e.type === "goFish" && e.player === viewerPlayer,
+        );
+        payload = { type: "you-drew", rank: fishEvent?.drewRank ?? null };
+      }
+    } else if (askEvent.to === viewerPlayer) {
+      if (askEvent.success) {
+        payload = { type: "they-asked-hit", rank: askEvent.rank, count: askEvent.cardsGiven };
+      } else {
+        payload = { type: "they-asked-miss", rank: askEvent.rank };
+      }
+    } else {
+      return;
+    }
+
+    setAnim(payload);
+    const timer = window.setTimeout(() => setAnim(null), 1900);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.history.length, viewerPlayer]);
+
   return (
     <main className="min-h-screen bg-emerald-800 px-4 py-5 text-white">
       <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-5">
@@ -68,15 +117,18 @@ export function GameView({
           thinking={opponentThinking}
         />
 
-        <div className="flex justify-center py-2">
-          <Pool count={state.pool.length} />
+        <div className="flex items-start gap-4">
+          <div className="shrink-0">
+            <Pool count={state.pool.length} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <EventLog
+              events={state.history}
+              viewerPlayer={viewerPlayer}
+              opponentLabel={opponentLabel}
+            />
+          </div>
         </div>
-
-        <EventLog
-          events={state.history}
-          viewerPlayer={viewerPlayer}
-          opponentLabel={opponentLabel}
-        />
         <Books books={state.books[viewerPlayer]} ownerLabel="You" />
 
         <section className="space-y-3">
@@ -127,6 +179,8 @@ export function GameView({
           </button>
         ) : null}
       </div>
+
+      <AnimationOverlay anim={anim} />
     </main>
   );
 }

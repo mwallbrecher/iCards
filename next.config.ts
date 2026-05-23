@@ -1,32 +1,20 @@
-import { networkInterfaces } from "node:os";
 import type { NextConfig } from "next";
 
-function getLocalIPv4Hosts(): string[] {
-  const hosts = new Set<string>();
-
-  for (const addresses of Object.values(networkInterfaces())) {
-    for (const address of addresses ?? []) {
-      if (address.internal || String(address.family) !== "IPv4") {
-        continue;
-      }
-
-      hosts.add(address.address);
-    }
-  }
-
-  return [...hosts];
-}
-
-const devHosts = ["localhost", "127.0.0.1", ...getLocalIPv4Hosts()];
-const devPorts = ["3000", "3001"];
-
 const nextConfig: NextConfig = {
-  allowedDevOrigins: devHosts,
+  // Only used by `next dev`; production builds and Vercel deploys ignore this.
+  allowedDevOrigins: ["localhost", "127.0.0.1", "10.137.198.41"],
   experimental: {
     serverActions: {
-      allowedOrigins: devHosts.flatMap((host) =>
-        devPorts.map((port) => `${host}:${port}`),
-      ),
+      // Production deploys: Vercel sets the Host header automatically, so
+      // allowedOrigins is consulted only when the deployment URL differs from
+      // the request URL. Listing the production domain explicitly is safe.
+      allowedOrigins: [
+        "localhost:3000",
+        "localhost:3001",
+        "10.137.198.41:3000", // dev LAN
+        "icards.wallbrecher.io", // production
+        "*.vercel.app", // preview deployments
+      ],
     },
   },
 };

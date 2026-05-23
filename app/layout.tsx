@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -13,8 +13,21 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "iCards",
-  description: "Play Go Fish in the browser.",
+  title: "iCards — Play card games together",
+  description: "Play Go Fish with a friend across the world. Real-time, no signup.",
+  openGraph: {
+    title: "iCards — Go Fish",
+    description: "Play Go Fish with a friend across the world.",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Lock viewport zoom so iOS Safari doesn't zoom on input focus.
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

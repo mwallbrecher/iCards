@@ -10,6 +10,30 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --animate-slide-from-top: slide-from-top 1.9s ease-out forwards;
+  --animate-stamp-pop: stamp-pop 1.9s ease-out forwards;
+  --animate-card-vanish: card-vanish 1.4s 0.35s ease-in forwards;
+}
+
+@keyframes slide-from-top {
+  0%   { opacity: 0; transform: translateY(-60px) scale(0.9); }
+  18%  { opacity: 1; transform: translateY(0) scale(1); }
+  72%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(10px) scale(0.95); }
+}
+
+@keyframes stamp-pop {
+  0%   { opacity: 0; transform: scale(0.3) rotate(-12deg); }
+  28%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
+  38%  { transform: scale(1) rotate(0deg); }
+  78%  { opacity: 1; }
+  100% { opacity: 0; transform: scale(0.9); }
+}
+
+@keyframes card-vanish {
+  0%   { opacity: 1; transform: scale(1); }
+  65%  { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0) rotate(12deg); }
 }
 
 @media (prefers-color-scheme: dark) {
