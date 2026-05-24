@@ -59,6 +59,16 @@ export function GameView({
     if (currentLen <= prevLen) return;
 
     const newEvents = history.slice(prevLen);
+
+    const bookEvent = newEvents.find(
+      (e): e is Extract<GameEvent, { type: "bookFormed" }> => e.type === "bookFormed",
+    );
+    if (bookEvent) {
+      setAnim({ type: "book-formed", rank: bookEvent.rank });
+      const timer = window.setTimeout(() => setAnim(null), 3200);
+      return () => window.clearTimeout(timer);
+    }
+
     const askEvent = newEvents.find(
       (e): e is Extract<GameEvent, { type: "ask" }> => e.type === "ask",
     );

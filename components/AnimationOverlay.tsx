@@ -4,7 +4,8 @@ export type AnimPayload =
   | { type: "you-got-cards"; rank: string; count: number }
   | { type: "you-drew"; rank: string | null }
   | { type: "they-asked-miss"; rank: string }
-  | { type: "they-asked-hit"; rank: string; count: number };
+  | { type: "they-asked-hit"; rank: string; count: number }
+  | { type: "book-formed"; rank: string };
 
 function AnimCard({ rank, ring }: { rank: string; ring: "green" | "red" }) {
   const ringClass =
@@ -86,6 +87,22 @@ export function AnimationOverlay({ anim }: { anim: AnimPayload | null }) {
             ))}
           </div>
           <p className="text-sm font-semibold text-orange-300">Taken!</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (anim.type === "book-formed") {
+    return (
+      <div className="pointer-events-none fixed inset-0 z-30 flex items-center justify-center">
+        <div className="animate-stamp-pop flex flex-col items-center gap-3 rounded-2xl border-4 border-pink-400 bg-pink-950/95 px-10 py-8 shadow-2xl backdrop-blur-sm">
+          <p className="text-xs font-semibold uppercase tracking-widest text-pink-300">
+            Book of {anim.rank}s!
+          </p>
+          <p className="text-5xl">💖</p>
+          <p className="text-center text-2xl font-black text-white">
+            I love my girlfriend Lauren
+          </p>
         </div>
       </div>
     );
