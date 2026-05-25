@@ -9,6 +9,10 @@ import { EventLog } from "@/components/EventLog";
 import { GameOverBanner } from "@/components/GameOverBanner";
 import { Hand } from "@/components/Hand";
 import { OpponentHand } from "@/components/OpponentHand";
+import {
+  PixelCharacter,
+  type CharacterAnimation,
+} from "@/components/PixelCharacter";
 import { Pool } from "@/components/Pool";
 import { rankShortPlural } from "@/components/cardDisplay";
 
@@ -45,20 +49,36 @@ export function GameView({
   const canAsk =
     isViewerTurn && selectedRank !== null && state.phase !== "gameOver";
 
-  const historyRef = useRef(state.history);
-  historyRef.current = state.history;
   const prevLenRef = useRef(state.history.length);
   const [anim, setAnim] = useState<AnimPayload | null>(null);
+  const [characterAnim, setCharacterAnim] =
+    useState<CharacterAnimation>("idle");
+  const [characterRunId, setCharacterRunId] = useState(0);
+  const lastSeenHistoryLengthRef = useRef(state.history.length);
 
   useEffect(() => {
-    const history = historyRef.current;
-    const currentLen = history.length;
+    const prevLength = lastSeenHistoryLengthRef.current;
+    const newEvents = state.history.slice(prevLength);
+    lastSeenHistoryLengthRef.current = state.history.length;
+
+    const viewerWentFishing = newEvents.some(
+      (event) => event.type === "goFish" && event.player === viewerPlayer,
+    );
+
+    if (viewerWentFishing) {
+      setCharacterAnim("fishing");
+      setCharacterRunId((runId) => runId + 1);
+    }
+  }, [state.history, viewerPlayer]);
+
+  useEffect(() => {
+    const currentLen = state.history.length;
     const prevLen = prevLenRef.current;
     prevLenRef.current = currentLen;
 
     if (currentLen <= prevLen) return;
 
-    const newEvents = history.slice(prevLen);
+    const newEvents = state.history.slice(prevLen);
 
     const bookEvent = newEvents.find(
       (e): e is Extract<GameEvent, { type: "bookFormed" }> => e.type === "bookFormed",
@@ -99,11 +119,13 @@ export function GameView({
     setAnim(payload);
     const timer = window.setTimeout(() => setAnim(null), 1900);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.history.length, viewerPlayer]);
+  }, [state.history, viewerPlayer]);
 
   return (
-    <main className="min-h-screen bg-emerald-800 px-4 py-5 text-white">
+    <main
+      className="min-h-screen bg-emerald-800 bg-cover bg-center bg-no-repeat px-4 py-5 text-white"
+      style={{ backgroundImage: "url('/graphics/background/background.png')" }}
+    >
       <div className="relative mx-auto flex w-full max-w-2xl flex-col gap-5">
         <header className="flex items-center justify-between gap-3">
           <div>
@@ -142,6 +164,19 @@ export function GameView({
         <Books books={state.books[viewerPlayer]} ownerLabel="You" />
 
         <section className="space-y-3">
+          <div className="my-4 flex justify-center">
+            <PixelCharacter
+              key={characterRunId}
+              spriteSheet="/graphics/characters/fisher_cast.png"
+              frameWidth={50}
+              frameHeight={44}
+              frameCount={21}
+              durationMs={2100}
+              animation={characterAnim}
+              scale={3}
+              onAnimationComplete={() => setCharacterAnim("idle")}
+            />
+          </div>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-emerald-50">Your hand</h2>
             <p className="text-xs text-emerald-50/75">
