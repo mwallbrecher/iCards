@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DECORATION_PLACEMENTS } from "@/lib/scene/decoration-config";
+import { DECORATION_ASSETS } from "@/lib/scene/decoration-config";
 import {
-  DECORATION_ATLASES,
-  DECORATION_SUB_ASSETS,
-  resolveSubAssetVariant,
+  isDecorationEnabled,
+  isRuntimeDecoration,
+  resolveDecorationFilePath,
 } from "@/lib/scene/decorations";
 import { TILE_SIZE } from "@/lib/scene/tileset";
 
@@ -16,23 +16,14 @@ type DecorationLayerProps = {
   seed: string;
 };
 
-const hasAnimatedPlaced = DECORATION_SUB_ASSETS.some((subAsset) => {
-  const placement = DECORATION_PLACEMENTS[subAsset.slotName];
-  const kind = subAsset.variantBehavior.kind;
-
-  return (
-    placement !== null &&
-    placement !== undefined &&
-    (kind === "animated" || kind === "animated-column")
-  );
-});
+const hasRuntimeDecorations = DECORATION_ASSETS.some(isRuntimeDecoration);
 
 export function DecorationLayer({ scale, seed }: DecorationLayerProps) {
   const [nowMs, setNowMs] = useState(() => Date.now());
   const tilePx = Math.round(TILE_SIZE * scale);
 
   useEffect(() => {
-    if (!hasAnimatedPlaced) {
+    if (!hasRuntimeDecorations) {
       return;
     }
 
@@ -45,45 +36,33 @@ export function DecorationLayer({ scale, seed }: DecorationLayerProps) {
 
   return (
     <>
-      {DECORATION_SUB_ASSETS.map((subAsset) => {
-        const placement = DECORATION_PLACEMENTS[subAsset.slotName];
-
-        if (placement === null || placement === undefined) {
+      {DECORATION_ASSETS.map((asset) => {
+        if (!isDecorationEnabled(asset)) {
           return null;
         }
 
-        const atlas = DECORATION_ATLASES[subAsset.atlasKey];
-        const variant = resolveSubAssetVariant(subAsset, seed, nowMs);
-        const displayWidth = Math.round(subAsset.tileWidth * tilePx);
-        const displayHeight = Math.round(subAsset.tileHeight * tilePx);
-        const scaleFactor = displayWidth / subAsset.widthPx;
-        const backgroundX = Math.round(variant.atlasX * scaleFactor);
-        const backgroundY = Math.round(variant.atlasY * scaleFactor);
-        const atlasDisplayWidth = Math.round(atlas.atlasWidth * scaleFactor);
-        const atlasDisplayHeight = Math.round(atlas.atlasHeight * scaleFactor);
-        const leftPx = Math.round(placement.tileX * tilePx);
-        const topPx = Math.round(placement.tileY * tilePx);
+        const filePath = resolveDecorationFilePath(asset, seed, nowMs);
+        const leftPx = Math.round(asset.tileX * tilePx);
+        const topPx = Math.round(asset.tileY * tilePx);
 
         return (
-          <div
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            alt=""
             aria-hidden
-            data-decoration-slot={subAsset.slotName}
-            key={subAsset.slotName}
+            data-decoration-id={asset.id}
+            key={asset.id}
+            src={filePath}
             style={{
-              backgroundImage: `url(${atlas.path})`,
-              backgroundPosition: `-${backgroundX}px -${backgroundY}px`,
-              backgroundClip: "padding-box",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: `${atlasDisplayWidth}px ${atlasDisplayHeight}px`,
-              boxSizing: "border-box",
-              height: displayHeight,
+              display: "block",
               imageRendering: "pixelated",
               left: leftPx,
-              overflow: "hidden",
               pointerEvents: "none",
               position: "absolute",
               top: topPx,
-              width: displayWidth,
+              transform: `translateZ(0) scale(${scale})`,
+              transformOrigin: "top left",
+              userSelect: "none",
             }}
           />
         );

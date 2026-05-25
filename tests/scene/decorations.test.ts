@@ -1,77 +1,99 @@
 import { describe, expect, test } from "vitest";
 import {
-  ANIMATION_PERIOD_MS,
-  DECORATION_ATLASES,
-  DECORATION_SUB_ASSETS,
+  decorationFilePaths,
   hashStringToNumber,
-  resolveSubAssetVariant,
+  isDecorationEnabled,
+  isRuntimeDecoration,
+  resolveDecorationFilePath,
+  type DecorationAssetEntry,
 } from "@/lib/scene/decorations";
 
-function subAsset(slotName: string) {
-  const asset = DECORATION_SUB_ASSETS.find((sub) => sub.slotName === slotName);
+const staticAsset: DecorationAssetEntry = {
+  id: "tree",
+  filePath: "/graphics/decorations/tree.png",
+  tileX: 2,
+  tileY: 3,
+  change: { kind: "static" },
+};
 
-  if (asset === undefined) {
-    throw new Error(`Missing decoration sub-asset ${slotName}`);
-  }
+const seedAsset: DecorationAssetEntry = {
+  id: "rock",
+  filePath: "/graphics/decorations/rock-a.png",
+  tileX: 5,
+  tileY: 6,
+  change: {
+    kind: "seed",
+    otherFilePaths: [
+      "/graphics/decorations/rock-b.png",
+      "/graphics/decorations/rock-c.png",
+    ],
+  },
+};
 
-  return asset;
-}
+const runtimeAsset: DecorationAssetEntry = {
+  id: "lantern",
+  filePath: "/graphics/decorations/lantern-0.png",
+  tileX: 1,
+  tileY: 2,
+  change: {
+    intervalMs: 1000,
+    kind: "runtime",
+    otherFilePaths: ["/graphics/decorations/lantern-1.png"],
+  },
+};
 
-describe("decoration metadata", () => {
-  test("defines the expected land asset inventory", () => {
-    expect(DECORATION_SUB_ASSETS.map((sub) => sub.slotName)).toEqual([
-      "land1_0",
-      "land1_1",
-      "land1_2",
-      "land1_3",
-      "land2_0",
-      "land2_1",
-      "land3_0",
-      "land4_0",
-      "land5_0",
+describe("individual decoration assets", () => {
+  test("keeps file path lists in base-plus-other order", () => {
+    expect(decorationFilePaths(seedAsset)).toEqual([
+      "/graphics/decorations/rock-a.png",
+      "/graphics/decorations/rock-b.png",
+      "/graphics/decorations/rock-c.png",
     ]);
   });
 
   test("hashes strings deterministically", () => {
-    expect(hashStringToNumber("land4_0:phase")).toBe(
-      hashStringToNumber("land4_0:phase"),
+    expect(hashStringToNumber("seed:rock:file")).toBe(
+      hashStringToNumber("seed:rock:file"),
     );
-    expect(hashStringToNumber("land4_0:phase")).not.toBe(
-      hashStringToNumber("land5_0:phase"),
+    expect(hashStringToNumber("seed:rock:file")).not.toBe(
+      hashStringToNumber("seed:tree:file"),
     );
   });
 
-  test("resolves static row variants from the seed", () => {
-    const asset = subAsset("land1_0");
-    const atlas = DECORATION_ATLASES[asset.atlasKey];
-    const variant = resolveSubAssetVariant(asset, "default", 0);
-
-    expect(variant.atlasX).toBe(asset.xPx);
-    expect([0, atlas.rowHeight]).toContain(variant.atlasY);
-    expect(resolveSubAssetVariant(asset, "default", 123456)).toEqual(variant);
-  });
-
-  test("static-column variants keep a seed-picked column", () => {
-    const asset = subAsset("land4_0");
-    const variant = resolveSubAssetVariant(asset, "default", 0);
-    const nextVariant = resolveSubAssetVariant(asset, "default", 999999);
-
-    expect([0, asset.widthPx, asset.widthPx * 2]).toContain(variant.atlasX);
-    expect(variant.atlasY).toBe(0);
-    expect(nextVariant).toEqual(variant);
-  });
-
-  test("animated-column variants keep a seed-picked column and animate rows", () => {
-    const asset = subAsset("land5_0");
-    const variant = resolveSubAssetVariant(asset, "default", 0);
-    const nextVariant = resolveSubAssetVariant(
-      asset,
-      "default",
-      ANIMATION_PERIOD_MS,
+  test("static assets always resolve to their main file", () => {
+    expect(resolveDecorationFilePath(staticAsset, "a", 0)).toBe(
+      staticAsset.filePath,
     );
+    expect(resolveDecorationFilePath(staticAsset, "b", 999999)).toBe(
+      staticAsset.filePath,
+    );
+  });
 
-    expect([0, asset.widthPx]).toContain(variant.atlasX);
-    expect(nextVariant.atlasX).toBe(variant.atlasX);
-    expect(nextVariant.atlasY).not.toBe(variant.atlasY);
+  test("seed assets choose one file deterministically per seed", () => {
+    const first = resolveDecorationFilePath(seedAsset, "default", 0);
+    const second = resolveDecorationFilePath(seedAsset, "default", 999999);
+
+    expect(decorationFilePaths(seedAsset)).toContain(first);
+    expect(second).toBe(first);
+  });
+
+  test("runtime assets cycle through files over time", () => {
+    const first = resolveDecorationFilePath(runtimeAsset, "default", 0);
+    const second = resolveDecorationFilePath(runtimeAsset, "default", 1000);
+
+    expect(decorationFilePaths(runtimeAsset)).toContain(first);
+    expect(decorationFilePaths(runtimeAsset)).toContain(second);
+    expect(second).not.toBe(first);
+  });
+
+  test("enabled and runtime checks account for disabled entries", () => {
+    expect(isDecorationEnabled(staticAsset)).toBe(true);
+    expect(isRuntimeDecoration(runtimeAsset)).toBe(true);
+    expect(
+      isRuntimeDecoration({
+        ...runtimeAsset,
+        enabled: false,
+      }),
+    ).toBe(false);
   });
 });
