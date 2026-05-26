@@ -29,7 +29,6 @@ type GameRoomProps = {
 
 export function GameRoom({ initialView, code, gameId }: GameRoomProps) {
   const [view, setView] = useState(initialView);
-  const [selectedRank, setSelectedRank] = useState<Rank | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [connectionState, setConnectionState] =
@@ -130,7 +129,6 @@ export function GameRoom({ initialView, code, gameId }: GameRoomProps) {
           rank,
         });
         setView(next);
-        setSelectedRank(null);
       } catch (caught) {
         setError((caught as Error).message);
         void refetch();
@@ -163,7 +161,6 @@ export function GameRoom({ initialView, code, gameId }: GameRoomProps) {
           expectedVersion: view.version,
         });
         setView(next);
-        setSelectedRank(null);
       } catch (caught) {
         setError((caught as Error).message);
         void refetch();
@@ -202,20 +199,12 @@ export function GameRoom({ initialView, code, gameId }: GameRoomProps) {
       <GameView
         state={view.state}
         viewerPlayer={view.viewerSlot ?? "A"}
-        opponentLabel={view.opponentName}
         isViewerTurn={
           view.viewerSlot !== null &&
           view.state.currentPlayer === view.viewerSlot &&
           view.status === "active"
         }
-        opponentThinking={false}
-        selectedRank={selectedRank}
-        onSelectRank={setSelectedRank}
         onAskForCard={handleAsk}
-        onNewGame={() => {
-          window.location.href = "/";
-        }}
-        showGameOverNewGameButton={false}
       />
 
       {view.status === "finished" && view.rematchRequestedBy === null ? (

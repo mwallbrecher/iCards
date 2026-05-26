@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { DecorationLayer } from "@/components/DecorationLayer";
 import { PixelCharacter } from "@/components/PixelCharacter";
 import type { CharacterAnimation } from "@/components/PixelCharacter";
@@ -22,7 +22,8 @@ import {
 } from "@/lib/scene/tileset";
 import type { AtlasName, Scene, SceneCell } from "@/lib/scene/types";
 
-const WAVE_INTERVAL_MS = 300;
+const WAVE_INTERVAL_MS = 900;
+export const SCENE_CHARACTER_FISHING_DURATION_MS = 1680;
 const MAX_AUTO_SCALE = 10;
 const VIGNETTE_INTENSITY = 0.35;
 const VIGNETTE_INNER_RADIUS = "35%";
@@ -71,10 +72,32 @@ type SceneRendererProps = {
   characterAnimations?: Partial<Record<SceneCharacterId, CharacterAnimation>>;
   /** Increment a character's run id to replay a non-looping animation. */
   characterRunIds?: Partial<Record<SceneCharacterId, number>>;
+  /** Optional overlay rendered above a scene character, anchored to scene pixels. */
+  characterOverlays?: Partial<Record<SceneCharacterId, SceneCharacterOverlay>>;
+  /** Optional scene-space overlay rendered over tiles, decorations, and characters. */
+  renderSceneOverlay?: (args: SceneOverlayArgs) => ReactNode;
+  /** Optional per-decoration file path overrides, keyed by decoration id. */
+  decorationOverrides?: Partial<Record<string, string>>;
   /** Called when a non-looping scene character animation completes. */
   onCharacterAnimationComplete?: (characterId: SceneCharacterId) => void;
   className?: string;
   style?: CSSProperties;
+};
+
+type SceneCharacterOverlayArgs = {
+  characterId: SceneCharacterId;
+  computedScale: number;
+  placement: SceneCharacterPlacement;
+  tilePx: number;
+};
+
+type SceneCharacterOverlay =
+  | ReactNode
+  | ((args: SceneCharacterOverlayArgs) => ReactNode);
+
+type SceneOverlayArgs = {
+  computedScale: number;
+  tilePx: number;
 };
 
 type ViewportSize = {
@@ -178,7 +201,7 @@ function alignToDevicePixel(
 ) {
   return (
     Math.round((viewportOffset + localOffset) * devicePixelRatio) /
-      devicePixelRatio -
+    devicePixelRatio -
     viewportOffset
   );
 }
@@ -189,6 +212,9 @@ export function SceneRenderer({
   fit = "none",
   characterAnimations = {},
   characterRunIds = {},
+  characterOverlays = {},
+  renderSceneOverlay,
+  decorationOverrides,
   onCharacterAnimationComplete,
   className,
   style,
@@ -312,16 +338,31 @@ export function SceneRenderer({
       return null;
     }
 
+    const characterX = Math.round(placement.tileX * tilePx);
+    const characterY = Math.round(placement.tileY * tilePx);
+    const characterWidth = 50 * computedScale;
+    const overlayGap = Math.max(8, Math.round(6 * computedScale));
+    const rawOverlay = characterOverlays[characterId];
+    const overlay =
+      typeof rawOverlay === "function"
+        ? rawOverlay({
+          characterId,
+          computedScale,
+          placement,
+          tilePx,
+        })
+        : rawOverlay;
+
     return (
       <div data-scene-character-id={characterId} key={characterId}>
         <PixelCharacter
           animation={characterAnimations[characterId] ?? "idle"}
           coordinate={{
-            x: Math.round(placement.tileX * tilePx),
-            y: Math.round(placement.tileY * tilePx),
+            x: characterX,
+            y: characterY,
           }}
           direction={placement.direction}
-          durationMs={2100}
+          durationMs={SCENE_CHARACTER_FISHING_DURATION_MS}
           frameCount={21}
           frameHeight={44}
           frameWidth={50}
@@ -333,6 +374,22 @@ export function SceneRenderer({
           spriteSheet="/graphics/characters/fisher_cast.png"
           zIndex={10}
         />
+        {overlay === undefined || overlay === null ? null : (
+          <div
+            aria-hidden
+            data-scene-character-overlay-id={characterId}
+            style={{
+              left: Math.round(characterX + characterWidth / 2),
+              pointerEvents: "none",
+              position: "absolute",
+              top: Math.round(characterY - overlayGap),
+              transform: "translate(-50%, -100%)",
+              zIndex: 13,
+            }}
+          >
+            {overlay}
+          </div>
+        )}
       </div>
     );
   }
@@ -372,7 +429,13 @@ export function SceneRenderer({
           ([characterId, placement]) =>
             renderSceneCharacter(characterId as SceneCharacterId, placement),
         )}
-        <DecorationLayer scale={computedScale} seed={scene.seed ?? "default"} />
+        <DecorationLayer
+          decorationOverrides={decorationOverrides}
+          scale={computedScale}
+          seed={scene.seed ?? "default"}
+          waveFrame={waveFrame}
+        />
+        {renderSceneOverlay?.({ computedScale, tilePx })}
         <div aria-hidden style={vignetteOverlayStyle} />
       </div>
     </div>

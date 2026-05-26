@@ -16,8 +16,8 @@ export const SCENE_CHARACTER_PLACEMENTS: Record<
 > = {
   player: {
     enabled: true,
-    tileX: 7.2,
-    tileY: 11.7,
+    tileX: 7.1,
+    tileY: 12.2,
     direction: "left",
   },
   opponent: {

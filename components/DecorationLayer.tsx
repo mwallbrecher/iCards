@@ -5,6 +5,7 @@ import { DECORATION_ASSETS } from "@/lib/scene/decoration-config";
 import {
   isDecorationEnabled,
   isRuntimeDecoration,
+  isWaveDecoration,
   resolveDecorationFilePath,
 } from "@/lib/scene/decorations";
 import { TILE_SIZE } from "@/lib/scene/tileset";
@@ -13,12 +14,15 @@ const REFRESH_INTERVAL_MS = 500;
 const DECORATION_FADE_MS = 220;
 
 type DecorationLayerProps = {
+  decorationOverrides?: Partial<Record<string, string>>;
   scale: number;
   seed: string;
+  waveFrame: 0 | 1;
 };
 
 type DecorationSpriteProps = {
   filePath: string;
+  fadeChanges: boolean;
   id: string;
   leftPx: number;
   scale: number;
@@ -27,6 +31,7 @@ type DecorationSpriteProps = {
 
 function DecorationSprite({
   filePath,
+  fadeChanges,
   id,
   leftPx,
   scale,
@@ -39,6 +44,11 @@ function DecorationSprite({
 
   useEffect(() => {
     if (filePath === currentFilePathRef.current) {
+      return;
+    }
+
+    if (!fadeChanges) {
+      currentFilePathRef.current = filePath;
       return;
     }
 
@@ -58,21 +68,24 @@ function DecorationSprite({
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
     };
-  }, [filePath]);
+  }, [fadeChanges, filePath]);
 
   const imageStyle = {
     display: "block",
     imageRendering: "pixelated" as const,
     pointerEvents: "none" as const,
-    transition: `opacity ${DECORATION_FADE_MS}ms ease-out`,
+    transition: fadeChanges
+      ? `opacity ${DECORATION_FADE_MS}ms ease-out`
+      : undefined,
     userSelect: "none" as const,
   };
+  const displayedFilePath = fadeChanges ? currentFilePath : filePath;
 
   return (
     <div
       aria-hidden
       data-decoration-id={id}
-      data-decoration-src={currentFilePath}
+      data-decoration-src={displayedFilePath}
       style={{
         left: leftPx,
         pointerEvents: "none",
@@ -82,7 +95,7 @@ function DecorationSprite({
         transformOrigin: "top left",
       }}
     >
-      {previousFilePath === null ? null : (
+      {!fadeChanges || previousFilePath === null ? null : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           alt=""
@@ -99,18 +112,24 @@ function DecorationSprite({
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         alt=""
-        src={currentFilePath}
+        src={displayedFilePath}
         style={{
           ...imageStyle,
-          opacity: previousFilePath === null || isFadingIn ? 1 : 0,
+          opacity:
+            !fadeChanges || previousFilePath === null || isFadingIn ? 1 : 0,
         }}
       />
     </div>
   );
 }
 
-export function DecorationLayer({ scale, seed }: DecorationLayerProps) {
-  const [nowMs, setNowMs] = useState(() => Date.now());
+export function DecorationLayer({
+  decorationOverrides = {},
+  scale,
+  seed,
+  waveFrame,
+}: DecorationLayerProps) {
+  const [nowMs, setNowMs] = useState(0);
   const hasRuntimeDecorations = DECORATION_ASSETS.some(isRuntimeDecoration);
   const tilePx = Math.round(TILE_SIZE * scale);
 
@@ -119,11 +138,18 @@ export function DecorationLayer({ scale, seed }: DecorationLayerProps) {
       return;
     }
 
+    const frame = window.requestAnimationFrame(() => {
+      setNowMs(Date.now());
+    });
+
     const interval = window.setInterval(() => {
       setNowMs(Date.now());
     }, REFRESH_INTERVAL_MS);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearInterval(interval);
+    };
   }, [hasRuntimeDecorations]);
 
   return (
@@ -133,17 +159,27 @@ export function DecorationLayer({ scale, seed }: DecorationLayerProps) {
           return null;
         }
 
-        const filePath = resolveDecorationFilePath(asset, seed, nowMs);
+        const resolvedFilePath = resolveDecorationFilePath(
+          asset,
+          seed,
+          nowMs,
+          waveFrame,
+        );
+        const filePath = decorationOverrides[asset.id] ?? resolvedFilePath;
+        const fadeChanges =
+          asset.change.kind !== "static" && !isWaveDecoration(asset);
         const leftPx = Math.round(asset.tileX * tilePx);
         const topPx = Math.round(asset.tileY * tilePx);
+        const spriteScale = scale * asset.sizeMultiplier;
 
         return (
           <DecorationSprite
+            fadeChanges={fadeChanges}
             filePath={filePath}
             id={asset.id}
             key={asset.id}
             leftPx={leftPx}
-            scale={scale}
+            scale={spriteScale}
             topPx={topPx}
           />
         );

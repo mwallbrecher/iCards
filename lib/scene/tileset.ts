@@ -10,7 +10,7 @@
  * Conventions:
  * - `top/bottom/left/right` describe the tile from the ISLAND's perspective
  *   (top = away from water, bottom = facing water in Stardew-like view).
- * - `water0` / `water1` are wave-animation frames (300ms toggle).
+ * - `water0` / `water1` are wave-animation frames (900ms toggle).
  *   Only tiles with water contact have these.
  * - `corner-X-Y` describes an INNER corner where the X-Y corner of the tile
  *   shows water cutting into the island. E.g. `corner-bottom-right`:

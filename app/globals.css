@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: "Departure Mono";
+  src: url("/DepartureMono.woff2") format("woff2");
+  font-display: swap;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -34,6 +40,20 @@
   0%   { opacity: 1; transform: scale(1); }
   65%  { opacity: 1; transform: scale(1); }
   100% { opacity: 0; transform: scale(0) rotate(12deg); }
+}
+
+@keyframes card-hand-pop {
+  0%   { transform: translateY(0) scale(1); }
+  34%  { transform: translateY(-18px) scale(1.08); }
+  58%  { transform: translateY(-10px) scale(1.03); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes card-stolen-flick {
+  0%   { opacity: 1; transform: translateY(0) scale(1); }
+  18%  { opacity: 1; transform: translateY(-28px) scale(1.04); }
+  72%  { opacity: 1; transform: translateY(-180px) scale(0.98); }
+  100% { opacity: 0; transform: translateY(-230px) scale(0.92); }
 }
 
 @media (prefers-color-scheme: dark) {
