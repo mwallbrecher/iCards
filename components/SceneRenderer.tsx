@@ -3,6 +3,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import { DecorationLayer } from "@/components/DecorationLayer";
+import { PixelCharacter } from "@/components/PixelCharacter";
+import type { CharacterAnimation } from "@/components/PixelCharacter";
+import {
+  SCENE_CHARACTER_PLACEMENTS,
+  type SceneCharacterId,
+  type SceneCharacterPlacement,
+} from "@/lib/scene/character-config";
 import {
   ATLAS_COLS,
   ATLAS_ROWS,
@@ -60,6 +67,12 @@ type SceneRendererProps = {
   scale?: number;
   /** How the scene should fit into its viewport. */
   fit?: SceneFit;
+  /** Optional animation state for scene characters, keyed by character id. */
+  characterAnimations?: Partial<Record<SceneCharacterId, CharacterAnimation>>;
+  /** Increment a character's run id to replay a non-looping animation. */
+  characterRunIds?: Partial<Record<SceneCharacterId, number>>;
+  /** Called when a non-looping scene character animation completes. */
+  onCharacterAnimationComplete?: (characterId: SceneCharacterId) => void;
   className?: string;
   style?: CSSProperties;
 };
@@ -174,6 +187,9 @@ export function SceneRenderer({
   scene,
   scale,
   fit = "none",
+  characterAnimations = {},
+  characterRunIds = {},
+  onCharacterAnimationComplete,
   className,
   style,
 }: SceneRendererProps) {
@@ -288,6 +304,39 @@ export function SceneRenderer({
     );
   }
 
+  function renderSceneCharacter(
+    characterId: SceneCharacterId,
+    placement: SceneCharacterPlacement,
+  ) {
+    if (!placement.enabled) {
+      return null;
+    }
+
+    return (
+      <div data-scene-character-id={characterId} key={characterId}>
+        <PixelCharacter
+          animation={characterAnimations[characterId] ?? "idle"}
+          coordinate={{
+            x: Math.round(placement.tileX * tilePx),
+            y: Math.round(placement.tileY * tilePx),
+          }}
+          direction={placement.direction}
+          durationMs={2100}
+          frameCount={21}
+          frameHeight={44}
+          frameWidth={50}
+          key={`${characterId}-${characterRunIds[characterId] ?? 0}`}
+          onAnimationComplete={() => {
+            onCharacterAnimationComplete?.(characterId);
+          }}
+          scale={computedScale}
+          spriteSheet="/graphics/characters/fisher_cast.png"
+          zIndex={10}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className={className}
@@ -319,6 +368,10 @@ export function SceneRenderer({
         <div aria-hidden style={shimmerOverlayStyle} />
         {renderCellGrid(scene.cells, "grass")}
         {renderCellGrid(scene.pierCells, "pier")}
+        {Object.entries(SCENE_CHARACTER_PLACEMENTS).map(
+          ([characterId, placement]) =>
+            renderSceneCharacter(characterId as SceneCharacterId, placement),
+        )}
         <DecorationLayer scale={computedScale} seed={scene.seed ?? "default"} />
         <div aria-hidden style={vignetteOverlayStyle} />
       </div>

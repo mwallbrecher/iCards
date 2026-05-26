@@ -3,6 +3,12 @@
 import type { CSSProperties } from "react";
 
 export type CharacterAnimation = "idle" | "fishing";
+export type CharacterDirection = "left" | "right";
+
+export type CharacterCoordinate = {
+  x: number;
+  y: number;
+};
 
 type PixelCharacterProps = {
   /** Path to the sprite sheet, e.g. "/graphics/characters/fisher_cast.png" */
@@ -19,6 +25,12 @@ type PixelCharacterProps = {
   animation: CharacterAnimation;
   /** Visual scale factor (1 = native size, 2 = double, etc.) */
   scale?: number;
+  /** Pixel coordinate relative to the nearest positioned parent */
+  coordinate?: CharacterCoordinate;
+  /** Visual facing direction. "left" mirrors the sprite with CSS. */
+  direction?: CharacterDirection;
+  /** Optional stacking order when the character is absolutely positioned */
+  zIndex?: number;
   /** Mirror horizontally (useful for opponent character facing the other way) */
   flipped?: boolean;
   /** Called when a non-looping animation finishes */
@@ -42,6 +54,9 @@ export function PixelCharacter({
   durationMs,
   animation,
   scale = 2,
+  coordinate,
+  direction = "right",
+  zIndex,
   flipped = false,
   onAnimationComplete,
 }: PixelCharacterProps) {
@@ -56,7 +71,11 @@ export function PixelCharacter({
     backgroundRepeat: "no-repeat",
     backgroundSize: `${sheetWidth}px ${displayHeight}px`,
     imageRendering: "pixelated",
-    transform: flipped ? "scaleX(-1)" : undefined,
+    left: coordinate?.x,
+    position: coordinate === undefined ? undefined : "absolute",
+    top: coordinate?.y,
+    transform: direction === "left" || flipped ? "scaleX(-1)" : undefined,
+    zIndex,
   };
 
   if (animation === "idle") {

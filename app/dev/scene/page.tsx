@@ -33,6 +33,8 @@ type SceneMapResponse = {
   pierMap: string;
 };
 
+type SceneFitMode = "cover" | "contain";
+
 function createEmptyOverlayMap(mapSource: string): string {
   return mapSource
     .split("\n")
@@ -73,6 +75,7 @@ export default function SceneDevPage() {
   const [width, setWidth] = useState(8);
   const [height, setHeight] = useState(13);
   const [scale, setScale] = useState<number | undefined>(undefined);
+  const [fit, setFit] = useState<SceneFitMode>("cover");
   const [scene, setScene] = useState(initialScene);
   const [mapSource, setMapSource] = useState("");
   const [mapError, setMapError] = useState<string | null>(null);
@@ -191,6 +194,25 @@ export default function SceneDevPage() {
             <option value="10">10x</option>
           </select>
         </label>
+        <div className="flex items-center gap-2">
+          <span>Fit:</span>
+          <div className="flex overflow-hidden rounded border border-slate-700 bg-slate-800">
+            {(["cover", "contain"] as const).map((mode) => (
+              <button
+                className={`px-3 py-1 font-semibold transition ${
+                  fit === mode
+                    ? "bg-emerald-700 text-white"
+                    : "text-slate-300 hover:bg-slate-700"
+                }`}
+                key={mode}
+                onClick={() => setFit(mode)}
+                type="button"
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div
@@ -199,7 +221,7 @@ export default function SceneDevPage() {
       >
         <SceneRenderer
           className="h-full w-full"
-          fit="cover"
+          fit={fit}
           scale={scale}
           scene={scene}
         />

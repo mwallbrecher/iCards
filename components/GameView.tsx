@@ -12,6 +12,8 @@ import { OpponentHand } from "@/components/OpponentHand";
 import {
   PixelCharacter,
   type CharacterAnimation,
+  type CharacterCoordinate,
+  type CharacterDirection,
 } from "@/components/PixelCharacter";
 import { Pool } from "@/components/Pool";
 import { rankShortPlural } from "@/components/cardDisplay";
@@ -27,7 +29,20 @@ type GameViewProps = {
   onAskForCard: (rank: Rank) => void;
   onNewGame: () => void;
   showGameOverNewGameButton?: boolean;
+  characterCoordinate?: CharacterCoordinate;
+  characterDirection?: CharacterDirection;
+  opponentCharacterCoordinate?: CharacterCoordinate;
+  opponentCharacterDirection?: CharacterDirection;
 };
+
+const DEFAULT_CHARACTER_COORDINATE = {
+  x: 53,
+  y: 14,
+} satisfies CharacterCoordinate;
+const DEFAULT_OPPONENT_CHARACTER_COORDINATE = {
+  x: 210,
+  y: 14,
+} satisfies CharacterCoordinate;
 
 function otherPlayer(player: PlayerId): PlayerId {
   return player === "A" ? "B" : "A";
@@ -44,6 +59,10 @@ export function GameView({
   onAskForCard,
   onNewGame,
   showGameOverNewGameButton = true,
+  characterCoordinate = DEFAULT_CHARACTER_COORDINATE,
+  characterDirection = "right",
+  opponentCharacterCoordinate = DEFAULT_OPPONENT_CHARACTER_COORDINATE,
+  opponentCharacterDirection = "left",
 }: GameViewProps) {
   const opponent = otherPlayer(viewerPlayer);
   const canAsk =
@@ -53,7 +72,10 @@ export function GameView({
   const [anim, setAnim] = useState<AnimPayload | null>(null);
   const [characterAnim, setCharacterAnim] =
     useState<CharacterAnimation>("idle");
+  const [opponentCharacterAnim, setOpponentCharacterAnim] =
+    useState<CharacterAnimation>("idle");
   const [characterRunId, setCharacterRunId] = useState(0);
+  const [opponentCharacterRunId, setOpponentCharacterRunId] = useState(0);
   const lastSeenHistoryLengthRef = useRef(state.history.length);
 
   useEffect(() => {
@@ -64,12 +86,20 @@ export function GameView({
     const viewerWentFishing = newEvents.some(
       (event) => event.type === "goFish" && event.player === viewerPlayer,
     );
+    const opponentWentFishing = newEvents.some(
+      (event) => event.type === "goFish" && event.player === opponent,
+    );
 
     if (viewerWentFishing) {
       setCharacterAnim("fishing");
       setCharacterRunId((runId) => runId + 1);
     }
-  }, [state.history, viewerPlayer]);
+
+    if (opponentWentFishing) {
+      setOpponentCharacterAnim("fishing");
+      setOpponentCharacterRunId((runId) => runId + 1);
+    }
+  }, [opponent, state.history, viewerPlayer]);
 
   useEffect(() => {
     const currentLen = state.history.length;
@@ -165,17 +195,34 @@ export function GameView({
 
         <section className="space-y-3">
           <div className="my-4 flex justify-center">
-            <PixelCharacter
-              key={characterRunId}
-              spriteSheet="/graphics/characters/fisher_cast.png"
-              frameWidth={50}
-              frameHeight={44}
-              frameCount={21}
-              durationMs={2100}
-              animation={characterAnim}
-              scale={3}
-              onAnimationComplete={() => setCharacterAnim("idle")}
-            />
+            <div className="relative h-44 w-[360px] max-w-full">
+              <PixelCharacter
+                key={characterRunId}
+                spriteSheet="/graphics/characters/fisher_cast.png"
+                frameWidth={50}
+                frameHeight={44}
+                frameCount={21}
+                durationMs={2100}
+                animation={characterAnim}
+                scale={3}
+                coordinate={characterCoordinate}
+                direction={characterDirection}
+                onAnimationComplete={() => setCharacterAnim("idle")}
+              />
+              <PixelCharacter
+                key={`opponent-${opponentCharacterRunId}`}
+                spriteSheet="/graphics/characters/fisher_cast.png"
+                frameWidth={50}
+                frameHeight={44}
+                frameCount={21}
+                durationMs={2100}
+                animation={opponentCharacterAnim}
+                scale={3}
+                coordinate={opponentCharacterCoordinate}
+                direction={opponentCharacterDirection}
+                onAnimationComplete={() => setOpponentCharacterAnim("idle")}
+              />
+            </div>
           </div>
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-sm font-semibold text-emerald-50">Your hand</h2>
