@@ -463,12 +463,6 @@ export function GameView({
     }
 
     if (phase.tag === "transfer") {
-      // Hide incoming cards from display hand until they visually arrive
-      const incoming = stateRef.current.hands[viewerPlayer]
-        .filter((c) => !committedIdsRef.current.has(c.id))
-        .map((c) => c.id);
-      setPendingIds(new Set(incoming));
-
       const src =
         phase.from === "opponent"
           ? getCenter(opponentAnchorRef)
@@ -571,6 +565,16 @@ export function GameView({
     lastSeenLenRef.current = state.history.length;
     if (newEvents.length === 0) return;
 
+    // Hide any cards that just arrived in viewer's hand so they don't appear
+    // before the fly animation. This runs in the same batch as launchPhaseQueue,
+    // so the first render never shows uncommitted cards.
+    const earlyIncoming = stateRef.current.hands[viewerPlayer]
+      .filter((c) => !committedIdsRef.current.has(c.id))
+      .map((c) => c.id);
+    if (earlyIncoming.length > 0) {
+      setPendingIds(new Set(earlyIncoming));
+    }
+
     const askEv = [...newEvents]
       .reverse()
       .find((e): e is AskEv => e.type === "ask");
@@ -633,6 +637,10 @@ export function GameView({
         rank,
         who: toSceneChar(bookEv.player, viewerPlayer),
       });
+    }
+
+    if (process.env.NODE_ENV === "development" && queue.length > 0) {
+      console.log("[GameView] phase queue:", queue.map((p) => p.tag).join(" → "));
     }
 
     launchPhaseQueue(queue);
