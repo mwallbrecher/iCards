@@ -16,44 +16,37 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --animate-slide-from-top: slide-from-top 1.9s ease-out forwards;
-  --animate-stamp-pop: stamp-pop 1.9s ease-out forwards;
-  --animate-card-vanish: card-vanish 1.4s 0.35s ease-in forwards;
 }
 
-@keyframes slide-from-top {
-  0%   { opacity: 0; transform: translateY(-60px) scale(0.9); }
-  18%  { opacity: 1; transform: translateY(0) scale(1); }
-  72%  { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(10px) scale(0.95); }
+/* Card flying through air — set --fly-dx / --fly-dy / --fly-arc / --fly-spin on the element */
+@keyframes card-fly {
+  0%   { transform: translate(0, 0) scale(1) rotate(0deg); }
+  42%  { transform: translate(calc(var(--fly-dx) * 0.44), calc(var(--fly-dy) * 0.44 - var(--fly-arc, 70px))) scale(1.1) rotate(var(--fly-spin, -4deg)); }
+  100% { transform: translate(var(--fly-dx), var(--fly-dy)) scale(0.88) rotate(0deg); }
 }
 
-@keyframes stamp-pop {
-  0%   { opacity: 0; transform: scale(0.3) rotate(-12deg); }
-  28%  { opacity: 1; transform: scale(1.08) rotate(2deg); }
-  38%  { transform: scale(1) rotate(0deg); }
-  78%  { opacity: 1; }
-  100% { opacity: 0; transform: scale(0.9); }
-}
-
-@keyframes card-vanish {
-  0%   { opacity: 1; transform: scale(1); }
-  65%  { opacity: 1; transform: scale(1); }
-  100% { opacity: 0; transform: scale(0) rotate(12deg); }
-}
-
-@keyframes card-hand-pop {
-  0%   { transform: translateY(0) scale(1); }
-  34%  { transform: translateY(-18px) scale(1.08); }
-  58%  { transform: translateY(-10px) scale(1.03); }
+/* Card arriving in hand */
+@keyframes card-land {
+  0%   { transform: translateY(0) scale(0.88); }
+  32%  { transform: translateY(-16px) scale(1.07); }
+  58%  { transform: translateY(-5px) scale(1.02); }
   100% { transform: translateY(0) scale(1); }
 }
 
-@keyframes card-stolen-flick {
-  0%   { opacity: 1; transform: translateY(0) scale(1); }
-  18%  { opacity: 1; transform: translateY(-28px) scale(1.04); }
-  72%  { opacity: 1; transform: translateY(-180px) scale(0.98); }
-  100% { opacity: 0; transform: translateY(-230px) scale(0.92); }
+/* Book counter bump */
+@keyframes counter-pop {
+  0%   { transform: scale(1); }
+  38%  { transform: scale(1.55); }
+  62%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+/* Small contextual label fade in → hold → fade out */
+@keyframes label-in-out {
+  0%   { opacity: 0; transform: translateY(10px) scale(0.88); }
+  18%  { opacity: 1; transform: translateY(0) scale(1); }
+  72%  { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-5px) scale(0.96); }
 }
 
 @media (prefers-color-scheme: dark) {
