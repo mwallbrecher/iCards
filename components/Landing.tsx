@@ -41,7 +41,7 @@ export function Landing() {
     <main className="flex min-h-screen items-center justify-center bg-emerald-800 px-4 py-8 text-white">
       <div className="w-full max-w-3xl space-y-6">
         <header className="text-center">
-          <h1 className="text-4xl font-bold tracking-normal">iCards — Go Fish</h1>
+          <h1 className="text-4xl font-bold tracking-normal">GoFish!</h1>
         </header>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -50,7 +50,7 @@ export function Landing() {
             className="space-y-4 rounded-md border border-white/15 bg-white p-5 text-gray-950 shadow-xl"
           >
             <div>
-              <h2 className="text-xl font-bold">Start new game</h2>
+              <h2 className="text-xl font-bold">Play vs. Friends</h2>
             </div>
             <label className="block space-y-1 text-sm font-medium">
               <span>Display name</span>
@@ -66,7 +66,7 @@ export function Landing() {
               disabled={pending}
               className="w-full rounded-md bg-emerald-700 px-4 py-3 font-bold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:bg-emerald-700/60"
             >
-              New game
+              Create Game
             </button>
           </form>
 
